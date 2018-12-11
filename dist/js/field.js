@@ -907,6 +907,25 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -930,7 +949,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             addressData: { latitude: this.field.lat || '', longitude: this.field.lng || '', address: '' },
             map: null,
             marker: null,
-            geocoder: new google.maps.Geocoder()
+            geocoder: new google.maps.Geocoder(),
+            showMap: this.field.withMap || false,
+            showLngLat: this.field.withLatLng || false
         };
     },
 
@@ -951,6 +972,12 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         refreshAddressData: function refreshAddressData() {
             this.geocode(new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude));
             this.refreshMap();
+        },
+        toggleMap: function toggleMap() {
+            this.field.withMap = !this.field.withMap;
+        },
+        toggleLatLng: function toggleLatLng() {
+            this.field.withLatLng = !this.field.withLatLng;
         },
         initMap: function initMap() {
             var element = document.getElementById(this.mapName);
@@ -11746,112 +11773,176 @@ var render = function() {
             on: { placechanged: _vm.getAddressData }
           }),
           _vm._v(" "),
-          _vm.field.withLatLng
-            ? _c("div", { staticClass: "flex flex-wrap w-full" }, [
-                _c("div", { staticClass: "flex w-1/2" }, [
-                  _c("div", { staticClass: "w-1/5 py-3" }, [
-                    _c(
-                      "label",
-                      {
-                        staticClass: "inline-block text-80 pt-2 leading-tight",
-                        attrs: { for: "latitude" }
-                      },
-                      [_vm._v("Lat")]
-                    )
-                  ]),
-                  _vm._v(" "),
-                  _c("div", { staticClass: "py-3 pr-2 w-4/5" }, [
-                    _c("input", {
-                      directives: [
-                        {
-                          name: "model",
-                          rawName: "v-model",
-                          value: _vm.addressData.latitude,
-                          expression: "addressData.latitude"
-                        }
-                      ],
-                      staticClass:
-                        "w-full form-control form-input form-input-bordered",
-                      class: _vm.errorClasses,
-                      attrs: {
-                        id: "latitude",
-                        type: "text",
-                        placeholder: "long"
-                      },
-                      domProps: { value: _vm.addressData.latitude },
-                      on: {
-                        change: _vm.refreshAddressData,
-                        input: function($event) {
-                          if ($event.target.composing) {
-                            return
-                          }
-                          _vm.$set(
-                            _vm.addressData,
-                            "latitude",
-                            $event.target.value
-                          )
-                        }
-                      }
-                    })
-                  ])
+          _c("div", { staticClass: "flex w-full pt-2" }, [
+            _c(
+              "div",
+              { staticClass: "flex w-1/2" },
+              [
+                _c("checkbox", {
+                  staticClass: "py-2 pr-2",
+                  attrs: { checked: _vm.field.withMap },
+                  on: { input: _vm.toggleMap }
+                }),
+                _vm._v(" "),
+                _c(
+                  "label",
+                  {
+                    staticClass: "inline-block text-80 pt-2 leading-tight",
+                    on: { click: _vm.toggleMap }
+                  },
+                  [_vm._v("Show Map")]
+                )
+              ],
+              1
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              { staticClass: "flex w-1/2" },
+              [
+                _c("checkbox", {
+                  staticClass: "py-2 pr-2",
+                  attrs: { checked: _vm.field.withLatLng },
+                  on: { input: _vm.toggleLatLng }
+                }),
+                _vm._v(" "),
+                _c(
+                  "label",
+                  {
+                    staticClass: "inline-block text-80 pt-2 leading-tight",
+                    on: { click: _vm.toggleLatLng }
+                  },
+                  [_vm._v("Show Coordinations")]
+                )
+              ],
+              1
+            )
+          ]),
+          _vm._v(" "),
+          _c(
+            "div",
+            {
+              directives: [
+                {
+                  name: "show",
+                  rawName: "v-show",
+                  value: _vm.field.withLatLng,
+                  expression: "field.withLatLng"
+                }
+              ],
+              staticClass: "flex flex-wrap w-full"
+            },
+            [
+              _c("div", { staticClass: "flex w-1/2" }, [
+                _c("div", { staticClass: "w-1/5 py-3" }, [
+                  _c(
+                    "label",
+                    {
+                      staticClass: "inline-block text-80 pt-2 leading-tight",
+                      attrs: { for: "latitude" }
+                    },
+                    [_vm._v("Lat")]
+                  )
                 ]),
                 _vm._v(" "),
-                _c("div", { staticClass: "flex w-1/2" }, [
-                  _c("div", { staticClass: "w-1/5 py-3" }, [
-                    _c(
-                      "label",
+                _c("div", { staticClass: "py-3 pr-2 w-4/5" }, [
+                  _c("input", {
+                    directives: [
                       {
-                        staticClass: "inline-block text-80 pt-2 leading-tight",
-                        attrs: { for: "longitude" }
-                      },
-                      [_vm._v("Lng")]
-                    )
-                  ]),
-                  _vm._v(" "),
-                  _c("div", { staticClass: "py-3 w-4/5" }, [
-                    _c("input", {
-                      directives: [
-                        {
-                          name: "model",
-                          rawName: "v-model",
-                          value: _vm.addressData.longitude,
-                          expression: "addressData.longitude"
-                        }
-                      ],
-                      staticClass:
-                        "w-full form-control form-input form-input-bordered",
-                      class: _vm.errorClasses,
-                      attrs: {
-                        id: "longitude",
-                        type: "text",
-                        placeholder: "long"
-                      },
-                      domProps: { value: _vm.addressData.longitude },
-                      on: {
-                        change: _vm.refreshAddressData,
-                        input: function($event) {
-                          if ($event.target.composing) {
-                            return
-                          }
-                          _vm.$set(
-                            _vm.addressData,
-                            "longitude",
-                            $event.target.value
-                          )
-                        }
+                        name: "model",
+                        rawName: "v-model",
+                        value: _vm.addressData.latitude,
+                        expression: "addressData.latitude"
                       }
-                    })
-                  ])
+                    ],
+                    staticClass:
+                      "w-full form-control form-input form-input-bordered",
+                    class: _vm.errorClasses,
+                    attrs: {
+                      id: "latitude",
+                      type: "text",
+                      placeholder: "long"
+                    },
+                    domProps: { value: _vm.addressData.latitude },
+                    on: {
+                      change: _vm.refreshAddressData,
+                      input: function($event) {
+                        if ($event.target.composing) {
+                          return
+                        }
+                        _vm.$set(
+                          _vm.addressData,
+                          "latitude",
+                          $event.target.value
+                        )
+                      }
+                    }
+                  })
+                ])
+              ]),
+              _vm._v(" "),
+              _c("div", { staticClass: "flex w-1/2" }, [
+                _c("div", { staticClass: "w-1/5 py-3" }, [
+                  _c(
+                    "label",
+                    {
+                      staticClass: "inline-block text-80 pt-2 leading-tight",
+                      attrs: { for: "longitude" }
+                    },
+                    [_vm._v("Lng")]
+                  )
+                ]),
+                _vm._v(" "),
+                _c("div", { staticClass: "py-3 w-4/5" }, [
+                  _c("input", {
+                    directives: [
+                      {
+                        name: "model",
+                        rawName: "v-model",
+                        value: _vm.addressData.longitude,
+                        expression: "addressData.longitude"
+                      }
+                    ],
+                    staticClass:
+                      "w-full form-control form-input form-input-bordered",
+                    class: _vm.errorClasses,
+                    attrs: {
+                      id: "longitude",
+                      type: "text",
+                      placeholder: "long"
+                    },
+                    domProps: { value: _vm.addressData.longitude },
+                    on: {
+                      change: _vm.refreshAddressData,
+                      input: function($event) {
+                        if ($event.target.composing) {
+                          return
+                        }
+                        _vm.$set(
+                          _vm.addressData,
+                          "longitude",
+                          $event.target.value
+                        )
+                      }
+                    }
+                  })
                 ])
               ])
-            : _vm._e(),
+            ]
+          ),
           _vm._v(" "),
-          _vm.field.withMap
-            ? _c("div", {
-                staticClass: "google-map w-full",
-                attrs: { id: _vm.mapName }
-              })
-            : _vm._e(),
+          _c("div", {
+            directives: [
+              {
+                name: "show",
+                rawName: "v-show",
+                value: _vm.field.withMap,
+                expression: "field.withMap"
+              }
+            ],
+            staticClass: "google-map w-full",
+            attrs: { id: _vm.mapName }
+          }),
           _vm._v(" "),
           _vm.hasError
             ? _c("p", { staticClass: "my-2 text-danger" }, [

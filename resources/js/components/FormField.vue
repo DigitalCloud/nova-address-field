@@ -12,8 +12,27 @@
                 :country="field.countries"
                 v-on:placechanged="getAddressData">
             </vue-google-autocomplete>
+            <div class="flex w-full pt-2">
+                <div class="flex w-1/2">
+                    <checkbox
+                        :checked="field.withMap"
+                        @input="toggleMap"
+                        class="py-2 pr-2"
 
-            <div v-if="field.withLatLng" class="flex flex-wrap w-full">
+                    />
+                    <label @click="toggleMap" class="inline-block text-80 pt-2 leading-tight">Show Map</label>
+                </div>
+
+                <div class="flex w-1/2">
+                    <checkbox
+                        :checked="field.withLatLng"
+                        @input="toggleLatLng"
+                        class="py-2 pr-2"
+                    />
+                    <label @click="toggleLatLng" class="inline-block text-80 pt-2 leading-tight">Show Coordinations</label>
+                </div>
+            </div>
+            <div v-show="field.withLatLng" class="flex flex-wrap w-full">
                 <div class="flex w-1/2">
                     <div class="w-1/5 py-3">
                         <label class="inline-block text-80 pt-2 leading-tight" for="latitude">Lat</label>
@@ -44,7 +63,7 @@
                 </div>
             </div>
 
-            <div class="google-map w-full" :id="mapName" v-if="field.withMap"></div>
+            <div class="google-map w-full" :id="mapName" v-show="field.withMap"></div>
 
             <p v-if="hasError" class="my-2 text-danger">
                 {{ firstError }}
@@ -76,7 +95,9 @@ export default {
             addressData: {latitude: this.field.lat || '', longitude: this.field.lng || '', address: ''},
             map: null,
             marker: null,
-            geocoder: new google.maps.Geocoder
+            geocoder: new google.maps.Geocoder,
+            showMap: this.field.withMap || false,
+            showLngLat: this.field.withLatLng || false,
         }
     },
 
@@ -97,6 +118,13 @@ export default {
         refreshAddressData() {
             this.geocode(new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude))
             this.refreshMap()
+        },
+
+        toggleMap() {
+            this.field.withMap = !this.field.withMap
+        },
+        toggleLatLng() {
+            this.field.withLatLng = !this.field.withLatLng
         },
 
         initMap() {
