@@ -3,7 +3,12 @@
     "description": "A Laravel Nova Address field.",
     "keywords": [
         "laravel",
-        "nova"
+        "nova",
+        "field",
+        "address",
+        "address autocomplete",
+        "google places",
+        "google map"
     ],
     "license": "MIT",
     "require": {
