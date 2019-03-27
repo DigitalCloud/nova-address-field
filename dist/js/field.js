@@ -963,15 +963,32 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             administrative_area_level_1: this.field.administrative_area_level_1 || false,
             locality: this.field.locality || false,
             postal_code: this.field.postal_code || false,
-            name: this.field.name || false,
+            name_field: this.field.name_field || false,
             latitude_field: this.field.latitude_field || false,
-            longitude_field: this.field.longitude_field || false
+            longitude_field: this.field.longitude_field || false,
+            relatedValues: {},
+            relatedWatchers: [],
+            addressIsInitializing: this.field.do_not_store ? true : false
         };
     },
 
     mounted: function mounted() {
+        var _this2 = this;
+
         if (this.field.withMap) {
             this.initMap();
+        }
+        if (this.field.do_not_store) {
+
+            this.$parent.$children.forEach(function (component) {
+                if (component.field && [_this2.field.latitude_field, _this2.field.longitude_field, _this2.field.name_field].includes(component.field.attribute)) {
+                    var comp = component;
+                    _this2.relatedWatchers.push(component.$watch('value', function (value) {
+                        _this2.relatedValues[comp.field.attribute] = value;
+                        _this2.initializeAddress();
+                    }));
+                }
+            });
         }
     },
 
@@ -992,6 +1009,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             return res.long_name;
         },
         getAddressData: function getAddressData(addressData, placeResultData, id) {
+            this.forgetRelatedWatchers();
             this.addressData.latitude = addressData.latitude;
             this.addressData.longitude = addressData.longitude;
             this.addressData.formatted_address = placeResultData.formatted_address;
@@ -1005,7 +1023,30 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
             this.refreshMap();
         },
-
+        forgetRelatedWatchers: function forgetRelatedWatchers() {
+            this.addressIsInitializing = false;
+            this.relatedWatchers.forEach(function (watcher) {
+                return watcher();
+            });
+        },
+        initializeAddress: function initializeAddress() {
+            if (this.field.name_field && this.relatedValues[this.field.name_field]) {
+                var v = this.relatedValues[this.field.name_field];
+                if (this.field.name_field_array_key) {
+                    v = v[this.field.name_field_array_key];
+                }
+                this.addressData.formatted_address = v;
+                this.$refs.address.update(this.addressData.formatted_address);
+            }
+            if (this.field.latitude_field && this.relatedValues[this.field.latitude_field]) {
+                this.addressData.latitude = this.relatedValues[this.field.latitude_field];
+                this.refreshMap();
+            }
+            if (this.field.longitude_field && this.relatedValues[this.field.longitude_field]) {
+                this.addressData.longitude = this.relatedValues[this.field.longitude_field];
+                this.refreshMap();
+            }
+        },
         refreshAddressData: function refreshAddressData() {
             this.geocode(new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude));
             this.refreshMap();
@@ -1029,9 +1070,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             this.map = new google.maps.Map(element, options);
 
             // get formatted address for the latitude and longitude
-            if (!this.addressData.address) {
-                this.geocode(center);
-            }
+            // if(!this.addressData.address) {
+            //     this.geocode(center)
+            // }
             // adding initial marker
             this.marker = new google.maps.Marker({
                 position: center,
@@ -1040,6 +1081,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
             var _this = this;
             google.maps.event.addListener(this.map, 'click', function (event) {
+                _this.forgetRelatedWatchers();
                 if (_this.marker) {
                     _this.marker.setMap(null);
                 }
@@ -1073,7 +1115,6 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             this.geocoder.geocode({ 'location': latLng }, function (results, status) {
                 if (status === 'OK') {
                     if (results[0]) {
-                        console.log(results);
                         _this.addressData.latitude = latLng.lat();
                         _this.addressData.longitude = latLng.lng();
                         _this.addressData.formatted_address = results[0].formatted_address;
@@ -1102,9 +1143,11 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
          */
         setInitialValue: function setInitialValue() {
             this.value = this.field.value || '';
-            if (this.value) {
-                this.addressData = JSON.parse(this.value);
-                this.$refs.address.update(this.addressData.formatted_address);
+            if (this.field.do_not_store) {} else {
+                if (this.value) {
+                    this.addressData = JSON.parse(this.value);
+                    this.$refs.address.update(this.addressData.formatted_address);
+                }
             }
         },
 
@@ -1113,6 +1156,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
          * Fill the given FormData object with the field's internal value.
          */
         fill: function fill(formData) {
+            if (this.field.do_not_store) {
+                return;
+            }
             formData.append(this.field.attribute, this.value || '');
         },
 
@@ -1124,24 +1170,24 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             this.value = value;
         },
         updateFields: function updateFields(addressData) {
-            var _this2 = this;
+            var _this3 = this;
 
             this.$nextTick(function () {
 
-                Nova.$emit(_this2.field.countryCode + '-value', addressData.countryCode);
-                Nova.$emit(_this2.field.country + '-value', addressData.country);
-                Nova.$emit(_this2.field.locality + '-value', addressData.locality);
-                Nova.$emit(_this2.field.administrative_area_level_1 + '-value', addressData.administrative_area_level_1);
+                Nova.$emit(_this3.field.countryCode + '-value', addressData.countryCode);
+                Nova.$emit(_this3.field.country + '-value', addressData.country);
+                Nova.$emit(_this3.field.locality + '-value', addressData.locality);
+                Nova.$emit(_this3.field.administrative_area_level_1 + '-value', addressData.administrative_area_level_1);
                 var name = addressData.name;
-                if (_this2.field.name_array_key) {
+                if (_this3.field.name_field_array_key) {
                     name = {};
-                    name[_this2.field.name_array_key] = addressData.name;
+                    name[_this3.field.name_field_array_key] = addressData.name;
                 }
 
-                Nova.$emit(_this2.field.name + '-value', name);
-                Nova.$emit(_this2.field.latitude_field + '-value', addressData.latitude);
-                Nova.$emit(_this2.field.longitude_field + '-value', addressData.longitude);
-                Nova.$emit(_this2.field.postal_code + '-value', addressData.postal_code);
+                Nova.$emit(_this3.field.name_field + '-value', name);
+                Nova.$emit(_this3.field.latitude_field + '-value', addressData.latitude);
+                Nova.$emit(_this3.field.longitude_field + '-value', addressData.longitude);
+                Nova.$emit(_this3.field.postal_code + '-value', addressData.postal_code);
             });
         }
     },
@@ -1156,7 +1202,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
                 this.value = JSON.stringify(newAddressData);
                 this.mapOptions.center = new google.maps.LatLng(newAddressData.latitude, newAddressData.longitude);
 
-                this.updateFields(newAddressData);
+                if (!this.addressIsInitializing) {
+                    this.updateFields(newAddressData);
+                }
             },
             deep: true
         }

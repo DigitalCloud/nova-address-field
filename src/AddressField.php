@@ -71,11 +71,11 @@ class AddressField extends Field
         ]);
     }
     
-    public function name($field, $inArrayKey=null)
+    public function nameField($field, $inArrayKey=null)
     {
         return $this->withMeta([
-            'name' => $field,
-            'name_array_key' => $inArrayKey,
+            'name_field' => $field,
+            'name_field_array_key' => $inArrayKey,
         ]);
     }
     
@@ -98,12 +98,19 @@ class AddressField extends Field
             'countries' => $list
         ]);
     }
+    
 
     public function initLocation($latitude, $longitude){
         return $this->withMeta([
             'lat' => $latitude,
             'lng' => $longitude,
         ]);
+    }
+    
+    public function doNotStore(){
+        $this->fillUsing(function(){});
+        $this->withMeta(['do_not_store' => true]);
+        return $this;
     }
 
     public function zoom($zoom)
