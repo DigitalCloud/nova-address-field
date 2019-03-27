@@ -71,11 +71,11 @@ class AddressField extends Field
         ]);
     }
     
-    public function nameField($field, $inArrayKey=null)
+    public function address($field, $inArrayKey=null)
     {
         return $this->withMeta([
-            'name_field' => $field,
-            'name_field_array_key' => $inArrayKey,
+            'address_field' => $field,
+            'address_field_array_key' => $inArrayKey,
         ]);
     }
     

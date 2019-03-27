@@ -1,7 +1,6 @@
 <template>
     <default-field :field="field" :errors="errors">
         <template slot="field">
-
             <div class="flex" v-if="manualFill">
                 <div class="w-4/5 p-1">
                     <vue-google-autocomplete
@@ -12,6 +11,7 @@
                         :class="errorClasses"
                         :placeholder="field.name"
                         :country="field.countries"
+                        :types="types"
                         v-on:placechanged="getAddressData">
                     </vue-google-autocomplete>
                 </div>
@@ -31,6 +31,7 @@
                 :class="errorClasses"
                 :placeholder="field.name"
                 :country="field.countries"
+                :types="types"
                 v-on:placechanged="getAddressData">
             </vue-google-autocomplete>
 
@@ -131,7 +132,7 @@ export default {
             administrative_area_level_1: this.field.administrative_area_level_1 || false,
             locality: this.field.locality || false,
             postal_code: this.field.postal_code || false,
-            name_field: this.field.name_field || false,
+            address_field: this.field.address_field || false,
             latitude_field: this.field.latitude_field || false,
             longitude_field: this.field.longitude_field || false,
             relatedValues: {},
@@ -139,6 +140,7 @@ export default {
             addressIsInitializing: this.field.do_not_store ? true : false,
             manualFill: this.field.manual_fill || false,
             hasUnfilledChanges: false,
+            types: ['geocode', 'establishment']
         }
     },
 
@@ -149,13 +151,15 @@ export default {
         if (this.field.do_not_store){
 
             this.$parent.$children.forEach(component => {
-                if (component.field && [this.field.latitude_field, this.field.longitude_field, this.field.name_field].includes(component.field.attribute)){
+                if (component.field && [this.field.latitude_field, this.field.longitude_field, this.field.address_field].includes(component.field.attribute)){
                     const comp = component;
                     const watcher = component.$watch('value', value => {
                         this.relatedValues[comp.field.attribute] = value;
-                        this.initializeAddress();
+                        if (this.addressIsInitializing){
+                            this.initializeAddress();
+                        }
                     });
-                    if (component.field.attribute === this.field.name_field){
+                    if (component.field.attribute === this.field.address_field){
                         this.relatedWatchers.push( watcher );
                     }
                 }
@@ -189,7 +193,6 @@ export default {
             this.addressData.administrative_area_level_1 = addressData.administrative_area_level_1;
             this.addressData.locality = addressData.locality;
             this.addressData.postal_code = addressData.postal_code;
-            this.addressData.name = placeResultData.name || placeResultData.formatted_address;
 
             this.hasUnfilledChanges = true;
             this.refreshMap()
@@ -199,9 +202,9 @@ export default {
             this.relatedWatchers.forEach(watcher => watcher());
         },
         relatedAreEmpty: function(){
-            if (this.field.name_field && this.relatedValues[this.field.name_field] ) {
-                if (this.field.name_field_array_key){
-                    if (this.relatedValues[this.field.name_field][this.field.name_field_array_key]){
+            if (this.field.address_field && this.relatedValues[this.field.address_field] ) {
+                if (this.field.address_field_array_key){
+                    if (this.relatedValues[this.field.address_field][this.field.address_field_array_key]){
                         return false;
                     }
                 } else {
@@ -217,10 +220,10 @@ export default {
             return true;
         },
         initializeAddress: function(){
-            if (this.field.name_field && this.relatedValues[this.field.name_field]){
-                let v = this.relatedValues[this.field.name_field];
-                if (this.field.name_field_array_key){
-                    v = v[this.field.name_field_array_key]
+            if (this.field.address_field && this.relatedValues[this.field.address_field]){
+                let v = this.relatedValues[this.field.address_field];
+                if (this.field.address_field_array_key){
+                    v = v[this.field.address_field_array_key]
                 }
                 this.addressData.formatted_address = v;
                 this.$refs.address.update(this.addressData.formatted_address);
@@ -312,7 +315,6 @@ export default {
                         _this.addressData.latitude = latLng.lat()
                         _this.addressData.longitude = latLng.lng()
                         _this.addressData.formatted_address = results[0].formatted_address
-                        _this.addressData.name = results[0].name || results[0].formatted_address
 
                         _this.addressData.countryCode = _this.getAddressComponent(results[0].address_components, 'country', true);
                         _this.addressData.country = _this.getAddressComponent(results[0].address_components, 'country');
@@ -375,13 +377,13 @@ export default {
                 Nova.$emit(this.field.country + '-value', addressData.country);
                 Nova.$emit(this.field.locality + '-value', addressData.locality);
                 Nova.$emit(this.field.administrative_area_level_1 + '-value', addressData.administrative_area_level_1);
-                var name = addressData.name;
-                if (this.field.name_field_array_key){
+                var name = addressData.formatted_address;
+                if (this.field.address_field_array_key){
                     name = {};
-                    name[this.field.name_field_array_key] = addressData.name;
+                    name[this.field.address_field_array_key] = addressData.formatted_address;
                 }
 
-                Nova.$emit(this.field.name_field + '-value', name);
+                Nova.$emit(this.field.address_field + '-value', name);
                 Nova.$emit(this.field.postal_code + '-value', addressData.postal_code);
 
             })
