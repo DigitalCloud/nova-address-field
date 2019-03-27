@@ -926,6 +926,28 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 
@@ -968,7 +990,9 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             longitude_field: this.field.longitude_field || false,
             relatedValues: {},
             relatedWatchers: [],
-            addressIsInitializing: this.field.do_not_store ? true : false
+            addressIsInitializing: this.field.do_not_store ? true : false,
+            manualFill: this.field.manual_fill || false,
+            hasUnfilledChanges: false
         };
     },
 
@@ -983,10 +1007,13 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             this.$parent.$children.forEach(function (component) {
                 if (component.field && [_this2.field.latitude_field, _this2.field.longitude_field, _this2.field.name_field].includes(component.field.attribute)) {
                     var comp = component;
-                    _this2.relatedWatchers.push(component.$watch('value', function (value) {
+                    var watcher = component.$watch('value', function (value) {
                         _this2.relatedValues[comp.field.attribute] = value;
                         _this2.initializeAddress();
-                    }));
+                    });
+                    if (component.field.attribute === _this2.field.name_field) {
+                        _this2.relatedWatchers.push(watcher);
+                    }
                 }
             });
         }
@@ -1021,6 +1048,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             this.addressData.postal_code = addressData.postal_code;
             this.addressData.name = placeResultData.name || placeResultData.formatted_address;
 
+            this.hasUnfilledChanges = true;
             this.refreshMap();
         },
         forgetRelatedWatchers: function forgetRelatedWatchers() {
@@ -1028,6 +1056,24 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             this.relatedWatchers.forEach(function (watcher) {
                 return watcher();
             });
+        },
+        relatedAreEmpty: function relatedAreEmpty() {
+            if (this.field.name_field && this.relatedValues[this.field.name_field]) {
+                if (this.field.name_field_array_key) {
+                    if (this.relatedValues[this.field.name_field][this.field.name_field_array_key]) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+            if (this.field.latitude_field && this.relatedValues[this.field.latitude_field]) {
+                return false;
+            }
+            if (this.field.longitude_field && this.relatedValues[this.field.longitude_field]) {
+                return false;
+            }
+            return true;
         },
         initializeAddress: function initializeAddress() {
             if (this.field.name_field && this.relatedValues[this.field.name_field]) {
@@ -1081,7 +1127,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
             var _this = this;
             google.maps.event.addListener(this.map, 'click', function (event) {
-                _this.forgetRelatedWatchers();
+
                 if (_this.marker) {
                     _this.marker.setMap(null);
                 }
@@ -1125,7 +1171,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
                         _this.addressData.administrative_area_level_1 = _this.getAddressComponent(results[0].address_components, 'administrative_area_level_1');
                         _this.addressData.locality = _this.getAddressComponent(results[0].address_components, 'locality');
                         _this.addressData.postal_code = _this.getAddressComponent(results[0].address_components, 'postal_code');
-
+                        _this.forgetRelatedWatchers();
+                        _this.hasUnfilledChanges = true;
                         _this.$refs.address.update(results[0].formatted_address);
                     } else {
                         //window.alert('No results found');
@@ -1169,9 +1216,13 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
         handleChange: function handleChange(value) {
             this.value = value;
         },
+        fillFields: function fillFields() {
+            this.updateFields(this.addressData);
+        },
         updateFields: function updateFields(addressData) {
             var _this3 = this;
 
+            this.hasUnfilledChanges = false;
             this.$nextTick(function () {
 
                 Nova.$emit(_this3.field.countryCode + '-value', addressData.countryCode);
@@ -1185,9 +1236,16 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
                 }
 
                 Nova.$emit(_this3.field.name_field + '-value', name);
-                Nova.$emit(_this3.field.latitude_field + '-value', addressData.latitude);
-                Nova.$emit(_this3.field.longitude_field + '-value', addressData.longitude);
                 Nova.$emit(_this3.field.postal_code + '-value', addressData.postal_code);
+            });
+        },
+        updateGeoLocationFields: function updateGeoLocationFields(addressData) {
+            var _this4 = this;
+
+            this.$nextTick(function () {
+
+                Nova.$emit(_this4.field.latitude_field + '-value', addressData.latitude);
+                Nova.$emit(_this4.field.longitude_field + '-value', addressData.longitude);
             });
         }
     },
@@ -1201,9 +1259,11 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             handler: function handler(newAddressData) {
                 this.value = JSON.stringify(newAddressData);
                 this.mapOptions.center = new google.maps.LatLng(newAddressData.latitude, newAddressData.longitude);
-
-                if (!this.addressIsInitializing) {
+                if (!this.addressIsInitializing && (!this.manualFill || this.relatedAreEmpty())) {
                     this.updateFields(newAddressData);
+                }
+                if (!this.addressIsInitializing) {
+                    this.updateGeoLocationFields(newAddressData);
                 }
             },
             deep: true
@@ -11969,18 +12029,60 @@ var render = function() {
         "template",
         { slot: "field" },
         [
-          _c("vue-google-autocomplete", {
-            ref: "address",
-            staticClass: "w-full form-control form-input form-input-bordered",
-            class: _vm.errorClasses,
-            attrs: {
-              id: _vm.field.attribute,
-              dusk: _vm.field.attribute,
-              placeholder: _vm.field.name,
-              country: _vm.field.countries
-            },
-            on: { placechanged: _vm.getAddressData }
-          }),
+          _vm.manualFill
+            ? _c("div", { staticClass: "flex" }, [
+                _c(
+                  "div",
+                  { staticClass: "w-4/5 p-1" },
+                  [
+                    _c("vue-google-autocomplete", {
+                      ref: "address",
+                      staticClass:
+                        "w-full form-control form-input form-input-bordered",
+                      class: _vm.errorClasses,
+                      attrs: {
+                        id: _vm.field.attribute,
+                        dusk: _vm.field.attribute,
+                        placeholder: _vm.field.name,
+                        country: _vm.field.countries
+                      },
+                      on: { placechanged: _vm.getAddressData }
+                    })
+                  ],
+                  1
+                ),
+                _vm._v(" "),
+                _c("div", { staticClass: "w-1/5 p-1" }, [
+                  _vm.manualFill
+                    ? _c(
+                        "button",
+                        {
+                          staticClass:
+                            "btn btn-default btn-primary hover:bg-primary-dark w-full",
+                          attrs: {
+                            type: "button",
+                            disabled: !_vm.hasUnfilledChanges
+                          },
+                          on: { click: _vm.fillFields }
+                        },
+                        [_vm._v(_vm._s(_vm.manualFill) + "\n                ")]
+                      )
+                    : _vm._e()
+                ])
+              ])
+            : _c("vue-google-autocomplete", {
+                ref: "address",
+                staticClass:
+                  "w-full p-1 form-control form-input form-input-bordered",
+                class: _vm.errorClasses,
+                attrs: {
+                  id: _vm.field.attribute,
+                  dusk: _vm.field.attribute,
+                  placeholder: _vm.field.name,
+                  country: _vm.field.countries
+                },
+                on: { placechanged: _vm.getAddressData }
+              }),
           _vm._v(" "),
           !_vm.field.hideToggles
             ? _c("div", { staticClass: "flex w-full pt-2" }, [

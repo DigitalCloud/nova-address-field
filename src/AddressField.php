@@ -112,6 +112,10 @@ class AddressField extends Field
         $this->withMeta(['do_not_store' => true]);
         return $this;
     }
+    
+    public function manualFill($label){
+        return $this->withMeta(['manual_fill' => $label]);
+    }
 
     public function zoom($zoom)
     {

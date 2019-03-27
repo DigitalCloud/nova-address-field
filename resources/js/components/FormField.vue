@@ -2,16 +2,38 @@
     <default-field :field="field" :errors="errors">
         <template slot="field">
 
+            <div class="flex" v-if="manualFill">
+                <div class="w-4/5 p-1">
+                    <vue-google-autocomplete
+                        ref="address"
+                        :id="field.attribute"
+                        :dusk="field.attribute"
+                        class="w-full form-control form-input form-input-bordered"
+                        :class="errorClasses"
+                        :placeholder="field.name"
+                        :country="field.countries"
+                        v-on:placechanged="getAddressData">
+                    </vue-google-autocomplete>
+                </div>
+                <div class="w-1/5 p-1">
+
+                    <button type="button" v-if="manualFill" v-on:click="fillFields" :disabled="!hasUnfilledChanges"
+                            class="btn btn-default btn-primary hover:bg-primary-dark w-full">{{manualFill}}
+                    </button>
+                </div>
+            </div>
             <vue-google-autocomplete
+                v-else
                 ref="address"
                 :id="field.attribute"
                 :dusk="field.attribute"
-                class="w-full form-control form-input form-input-bordered"
+                class="w-full p-1 form-control form-input form-input-bordered"
                 :class="errorClasses"
                 :placeholder="field.name"
                 :country="field.countries"
                 v-on:placechanged="getAddressData">
             </vue-google-autocomplete>
+
             <div v-if="!field.hideToggles" class="flex w-full pt-2">
                 <div class="flex w-1/2">
                     <checkbox
@@ -115,6 +137,8 @@ export default {
             relatedValues: {},
             relatedWatchers: [],
             addressIsInitializing: this.field.do_not_store ? true : false,
+            manualFill: this.field.manual_fill || false,
+            hasUnfilledChanges: false,
         }
     },
 
@@ -127,10 +151,13 @@ export default {
             this.$parent.$children.forEach(component => {
                 if (component.field && [this.field.latitude_field, this.field.longitude_field, this.field.name_field].includes(component.field.attribute)){
                     const comp = component;
-                    this.relatedWatchers.push( component.$watch('value', value => {
+                    const watcher = component.$watch('value', value => {
                         this.relatedValues[comp.field.attribute] = value;
                         this.initializeAddress();
-                    }) );
+                    });
+                    if (component.field.attribute === this.field.name_field){
+                        this.relatedWatchers.push( watcher );
+                    }
                 }
             })
 
@@ -164,11 +191,30 @@ export default {
             this.addressData.postal_code = addressData.postal_code;
             this.addressData.name = placeResultData.name || placeResultData.formatted_address;
 
+            this.hasUnfilledChanges = true;
             this.refreshMap()
         },
         forgetRelatedWatchers: function(){
             this.addressIsInitializing = false;
             this.relatedWatchers.forEach(watcher => watcher());
+        },
+        relatedAreEmpty: function(){
+            if (this.field.name_field && this.relatedValues[this.field.name_field] ) {
+                if (this.field.name_field_array_key){
+                    if (this.relatedValues[this.field.name_field][this.field.name_field_array_key]){
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+            if (this.field.latitude_field && this.relatedValues[this.field.latitude_field]) {
+                return false;
+            }
+            if (this.field.longitude_field && this.relatedValues[this.field.longitude_field]) {
+                return false;
+            }
+            return true;
         },
         initializeAddress: function(){
             if (this.field.name_field && this.relatedValues[this.field.name_field]){
@@ -226,7 +272,7 @@ export default {
 
             var _this = this;
             google.maps.event.addListener(this.map, 'click', function(event) {
-                _this.forgetRelatedWatchers()
+
                 if (_this.marker) {
                     _this.marker.setMap(null);
                 }
@@ -273,7 +319,8 @@ export default {
                         _this.addressData.administrative_area_level_1 = _this.getAddressComponent(results[0].address_components, 'administrative_area_level_1');
                         _this.addressData.locality = _this.getAddressComponent(results[0].address_components, 'locality');
                         _this.addressData.postal_code = _this.getAddressComponent(results[0].address_components, 'postal_code');
-
+                        _this.forgetRelatedWatchers()
+                        _this.hasUnfilledChanges = true;
                         _this.$refs.address.update(results[0].formatted_address);
                     } else {
                         //window.alert('No results found');
@@ -316,7 +363,12 @@ export default {
         handleChange(value) {
             this.value = value
         },
+        fillFields(){
+            this.updateFields(this.addressData)
+        },
         updateFields(addressData){
+
+            this.hasUnfilledChanges = false;
             this.$nextTick(() => {
 
                 Nova.$emit(this.field.countryCode + '-value', addressData.countryCode);
@@ -330,9 +382,15 @@ export default {
                 }
 
                 Nova.$emit(this.field.name_field + '-value', name);
+                Nova.$emit(this.field.postal_code + '-value', addressData.postal_code);
+
+            })
+        },
+        updateGeoLocationFields(addressData) {
+            this.$nextTick(() => {
+
                 Nova.$emit(this.field.latitude_field + '-value', addressData.latitude);
                 Nova.$emit(this.field.longitude_field + '-value', addressData.longitude);
-                Nova.$emit(this.field.postal_code + '-value', addressData.postal_code);
 
             })
         }
@@ -349,9 +407,11 @@ export default {
             handler: function (newAddressData) {
                 this.value = JSON.stringify(newAddressData)
                 this.mapOptions.center = new google.maps.LatLng(newAddressData.latitude, newAddressData.longitude)
-
+                if (!this.addressIsInitializing && (!this.manualFill || this.relatedAreEmpty())){
+                    this.updateFields(newAddressData)
+                }
                 if (!this.addressIsInitializing){
-                this.updateFields(newAddressData)
+                    this.updateGeoLocationFields(newAddressData);
                 }
             },
             deep: true
