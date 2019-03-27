@@ -24,6 +24,12 @@ class AddressField extends Field
             'withLatLng' => true
         ]);
     }
+    
+    public function hideToggles(){
+        return $this->withMeta([
+            'hideToggles' => true
+        ]);
+    }
 
     public function countries($list){
         return $this->withMeta([

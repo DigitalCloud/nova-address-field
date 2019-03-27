@@ -12,7 +12,7 @@
                 :country="field.countries"
                 v-on:placechanged="getAddressData">
             </vue-google-autocomplete>
-            <div class="flex w-full pt-2">
+            <div v-if="!field.hideToggles" class="flex w-full pt-2">
                 <div class="flex w-1/2">
                     <checkbox
                         :checked="field.withMap"
@@ -98,6 +98,7 @@ export default {
             geocoder: new google.maps.Geocoder,
             showMap: this.field.withMap || false,
             showLngLat: this.field.withLatLng || false,
+            hideToggles: this.field.hideToggles || false,
         }
     },
 
