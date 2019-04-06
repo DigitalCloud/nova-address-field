@@ -1,18 +1,41 @@
 <template>
     <default-field :field="field" :errors="errors">
         <template slot="field">
+            <div class="flex" v-if="manualFill">
+                <div class="w-4/5 p-1">
+                    <vue-google-autocomplete
+                        ref="address"
+                        :id="field.attribute"
+                        :dusk="field.attribute"
+                        class="w-full form-control form-input form-input-bordered"
+                        :class="errorClasses"
+                        :placeholder="field.name"
+                        :country="field.countries"
+                        :types="types"
+                        v-on:placechanged="getAddressData">
+                    </vue-google-autocomplete>
+                </div>
+                <div class="w-1/5 p-1">
 
+                    <button type="button" v-if="manualFill" v-on:click="fillFields" :disabled="!hasUnfilledChanges"
+                            class="btn btn-default btn-primary hover:bg-primary-dark w-full">{{manualFill}}
+                    </button>
+                </div>
+            </div>
             <vue-google-autocomplete
+                v-else
                 ref="address"
                 :id="field.attribute"
                 :dusk="field.attribute"
-                class="w-full form-control form-input form-input-bordered"
+                class="w-full p-1 form-control form-input form-input-bordered"
                 :class="errorClasses"
                 :placeholder="field.name"
                 :country="field.countries"
+                :types="types"
                 v-on:placechanged="getAddressData">
             </vue-google-autocomplete>
-            <div class="flex w-full pt-2">
+
+            <div v-if="!field.hideToggles" class="flex w-full pt-2">
                 <div class="flex w-1/2">
                     <checkbox
                         :checked="field.withMap"
@@ -92,12 +115,32 @@ export default {
                 zoom: 5
             },
             address: '',
-            addressData: {latitude: this.field.lat || '', longitude: this.field.lng || '', address: ''},
+            addressData: {
+                latitude: this.field.lat || '',
+                longitude: this.field.lng || '',
+                address: ''
+            },
             map: null,
             marker: null,
             geocoder: new google.maps.Geocoder,
             showMap: this.field.withMap || false,
             showLngLat: this.field.withLatLng || false,
+            hideToggles: this.field.hideToggles || false,
+
+            countryCode: this.field.countryCode || false,
+            country: this.field.country || false,
+            administrative_area_level_1: this.field.administrative_area_level_1 || false,
+            locality: this.field.locality || false,
+            postal_code: this.field.postal_code || false,
+            address_field: this.field.address_field || false,
+            latitude_field: this.field.latitude_field || false,
+            longitude_field: this.field.longitude_field || false,
+            relatedValues: {},
+            relatedWatchers: [],
+            addressIsInitializing: this.field.do_not_store ? true : false,
+            manualFill: this.field.manual_fill || false,
+            hasUnfilledChanges: false,
+            types: ['geocode', 'establishment']
         }
     },
 
@@ -105,16 +148,95 @@ export default {
         if(this.field.withMap) {
             this.initMap()
         }
+        if (this.field.do_not_store){
+
+            this.$parent.$children.forEach(component => {
+                if (component.field && [this.field.latitude_field, this.field.longitude_field, this.field.address_field].includes(component.field.attribute)){
+                    const comp = component;
+                    const watcher = component.$watch('value', value => {
+                        this.relatedValues[comp.field.attribute] = value;
+                        if (this.addressIsInitializing){
+                            this.initializeAddress();
+                        }
+                    });
+                    if (component.field.attribute === this.field.address_field){
+                        this.relatedWatchers.push( watcher );
+                    }
+                }
+            })
+
+        }
     },
 
     methods: {
+        getAddressComponent: function (address_components, component, short=false){
+            const res = address_components.find(function (comp) {
+                return comp.types.includes(component)
+            })
+            if (!res){
+                return;
+            }
+            if (short){
+                return res.short_name;
+            }
+
+            return res.long_name;
+        },
         getAddressData: function (addressData, placeResultData, id) {
+            this.forgetRelatedWatchers()
             this.addressData.latitude = addressData.latitude;
             this.addressData.longitude = addressData.longitude;
             this.addressData.formatted_address = placeResultData.formatted_address;
+
+            this.addressData.countryCode = this.getAddressComponent(placeResultData.address_components, 'country', true);
+            this.addressData.country = addressData.country;
+            this.addressData.administrative_area_level_1 = addressData.administrative_area_level_1;
+            this.addressData.locality = addressData.locality;
+            this.addressData.postal_code = addressData.postal_code;
+
+            this.hasUnfilledChanges = true;
             this.refreshMap()
         },
-
+        forgetRelatedWatchers: function(){
+            this.addressIsInitializing = false;
+            this.relatedWatchers.forEach(watcher => watcher());
+        },
+        relatedAreEmpty: function(){
+            if (this.field.address_field && this.relatedValues[this.field.address_field] ) {
+                if (this.field.address_field_array_key){
+                    if (this.relatedValues[this.field.address_field][this.field.address_field_array_key]){
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+            if (this.field.latitude_field && this.relatedValues[this.field.latitude_field]) {
+                return false;
+            }
+            if (this.field.longitude_field && this.relatedValues[this.field.longitude_field]) {
+                return false;
+            }
+            return true;
+        },
+        initializeAddress: function(){
+            if (this.field.address_field && this.relatedValues[this.field.address_field]){
+                let v = this.relatedValues[this.field.address_field];
+                if (this.field.address_field_array_key){
+                    v = v[this.field.address_field_array_key]
+                }
+                this.addressData.formatted_address = v;
+                this.$refs.address.update(this.addressData.formatted_address);
+            }
+            if (this.field.latitude_field && this.relatedValues[this.field.latitude_field]) {
+                this.addressData.latitude = this.relatedValues[this.field.latitude_field];
+                this.refreshMap()
+            }
+            if (this.field.longitude_field && this.relatedValues[this.field.longitude_field]) {
+                this.addressData.longitude = this.relatedValues[this.field.longitude_field];
+                this.refreshMap()
+            }
+        },
         refreshAddressData() {
             this.geocode(new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude))
             this.refreshMap()
@@ -140,9 +262,9 @@ export default {
             this.map = new google.maps.Map(element, options);
 
             // get formatted address for the latitude and longitude
-            if(!this.addressData.address) {
-                this.geocode(center)
-            }
+            // if(!this.addressData.address) {
+            //     this.geocode(center)
+            // }
             // adding initial marker
             this.marker = new google.maps.Marker({
                 position: center,
@@ -153,6 +275,7 @@ export default {
 
             var _this = this;
             google.maps.event.addListener(this.map, 'click', function(event) {
+
                 if (_this.marker) {
                     _this.marker.setMap(null);
                 }
@@ -192,6 +315,14 @@ export default {
                         _this.addressData.latitude = latLng.lat()
                         _this.addressData.longitude = latLng.lng()
                         _this.addressData.formatted_address = results[0].formatted_address
+
+                        _this.addressData.countryCode = _this.getAddressComponent(results[0].address_components, 'country', true);
+                        _this.addressData.country = _this.getAddressComponent(results[0].address_components, 'country');
+                        _this.addressData.administrative_area_level_1 = _this.getAddressComponent(results[0].address_components, 'administrative_area_level_1');
+                        _this.addressData.locality = _this.getAddressComponent(results[0].address_components, 'locality');
+                        _this.addressData.postal_code = _this.getAddressComponent(results[0].address_components, 'postal_code');
+                        _this.forgetRelatedWatchers()
+                        _this.hasUnfilledChanges = true;
                         _this.$refs.address.update(results[0].formatted_address);
                     } else {
                         //window.alert('No results found');
@@ -208,9 +339,13 @@ export default {
          */
         setInitialValue() {
             this.value = this.field.value || ''
-            if(this.value) {
-                this.addressData = JSON.parse(this.value)
-                this.$refs.address.update(this.addressData.formatted_address);
+            if (this.field.do_not_store) {
+
+            } else {
+                if(this.value) {
+                    this.addressData = JSON.parse(this.value)
+                    this.$refs.address.update(this.addressData.formatted_address);
+                }
             }
         },
 
@@ -218,6 +353,9 @@ export default {
          * Fill the given FormData object with the field's internal value.
          */
         fill(formData) {
+            if (this.field.do_not_store){
+                return;
+            }
             formData.append(this.field.attribute, this.value || '')
         },
 
@@ -227,6 +365,37 @@ export default {
         handleChange(value) {
             this.value = value
         },
+        fillFields(){
+            this.updateFields(this.addressData)
+        },
+        updateFields(addressData){
+
+            this.hasUnfilledChanges = false;
+            this.$nextTick(() => {
+
+                Nova.$emit(this.field.countryCode + '-value', addressData.countryCode);
+                Nova.$emit(this.field.country + '-value', addressData.country);
+                Nova.$emit(this.field.locality + '-value', addressData.locality);
+                Nova.$emit(this.field.administrative_area_level_1 + '-value', addressData.administrative_area_level_1);
+                var name = addressData.formatted_address;
+                if (this.field.address_field_array_key){
+                    name = {};
+                    name[this.field.address_field_array_key] = addressData.formatted_address;
+                }
+
+                Nova.$emit(this.field.address_field + '-value', name);
+                Nova.$emit(this.field.postal_code + '-value', addressData.postal_code);
+
+            })
+        },
+        updateGeoLocationFields(addressData) {
+            this.$nextTick(() => {
+
+                Nova.$emit(this.field.latitude_field + '-value', addressData.latitude);
+                Nova.$emit(this.field.longitude_field + '-value', addressData.longitude);
+
+            })
+        }
     },
 
     computed: {
@@ -240,6 +409,12 @@ export default {
             handler: function (newAddressData) {
                 this.value = JSON.stringify(newAddressData)
                 this.mapOptions.center = new google.maps.LatLng(newAddressData.latitude, newAddressData.longitude)
+                if (!this.addressIsInitializing && (!this.manualFill || this.relatedAreEmpty())){
+                    this.updateFields(newAddressData)
+                }
+                if (!this.addressIsInitializing){
+                    this.updateGeoLocationFields(newAddressData);
+                }
             },
             deep: true
         }
@@ -250,7 +425,6 @@ export default {
 
 <style scoped>
     .google-map {
-        width: 720px;
         height: 300px;
         margin: 0 auto;
         background: gray;
