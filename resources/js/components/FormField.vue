@@ -113,6 +113,7 @@ export default {
             this.addressData.longitude = addressData.longitude;
             this.addressData.formatted_address = placeResultData.formatted_address;
             this.refreshMap()
+            this.$emit('addressChanged', this.addressData)
         },
 
         refreshAddressData() {
@@ -193,6 +194,7 @@ export default {
                         _this.addressData.longitude = latLng.lng()
                         _this.addressData.formatted_address = results[0].formatted_address
                         _this.$refs.address.update(results[0].formatted_address);
+                        _this.$emit('addressChanged', _this.addressData)
                     } else {
                         //window.alert('No results found');
                     }
