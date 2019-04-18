@@ -191,8 +191,8 @@ export default {
             this.geocoder.geocode({'location': latLng}, function(results, status) {
                 if (status === 'OK') {
                     if (results[0]) {
-                        _this.addressData.latitude = latLng.lat().toFixed(6)
-                        _this.addressData.longitude = latLng.lng().toFixed(6)
+                        _this.addressData.latitude = parseFloat(latLng.lat().toFixed(6))
+                        _this.addressData.longitude = parseFloat(latLng.lng().toFixed(6))
                         _this.addressData.formatted_address = results[0].formatted_address
                         _this.$refs.address.update(results[0].formatted_address);
                         _this.$emit('addressChanged', _this.addressData)
@@ -200,8 +200,12 @@ export default {
                         //window.alert('No results found');
                     }
                 } else {
-                    //window.alert('Geocoder failed due to: ' + status);
-                    //this.errors = false;
+                    _this.addressData.latitude = null
+                    _this.addressData.longitude = null
+                    _this.addressData.formatted_address = null
+                    _this.$refs.address.update('');
+                    _this.$emit('addressChanged', _this.addressData)
+                    console.log(status);
                 }
             });
         },
