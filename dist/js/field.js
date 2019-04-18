@@ -980,6 +980,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             this.field.withLatLng = !this.field.withLatLng;
         },
         initMap: function initMap() {
+            console.log('hsbfjsdbfjdbjdb');
             var element = document.getElementById(this.mapName);
             var center = new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude);
 
@@ -1036,8 +1037,8 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
             this.geocoder.geocode({ 'location': latLng }, function (results, status) {
                 if (status === 'OK') {
                     if (results[0]) {
-                        _this.addressData.latitude = latLng.lat();
-                        _this.addressData.longitude = latLng.lng();
+                        _this.addressData.latitude = latLng.lat().toFixed(6);
+                        _this.addressData.longitude = latLng.lng().toFixed(6);
                         _this.addressData.formatted_address = results[0].formatted_address;
                         _this.$refs.address.update(results[0].formatted_address);
                     } else {
