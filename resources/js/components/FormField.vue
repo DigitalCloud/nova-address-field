@@ -29,7 +29,7 @@
                         @input="toggleLatLng"
                         class="py-2 pr-2"
                     />
-                    <label @click="toggleLatLng" class="inline-block text-80 pt-2 leading-tight">Show Coordinations</label>
+                    <label @click="toggleLatLng" class="inline-block text-80 pt-2 leading-tight">Show Coordinates</label>
                 </div>
             </div>
             <div v-show="field.withLatLng" class="flex flex-wrap w-full">
@@ -129,7 +129,6 @@ export default {
         },
 
         initMap() {
-            console.log('hsbfjsdbfjdbjdb')
             const element = document.getElementById(this.mapName);
             let center =  new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude)
 
@@ -205,7 +204,6 @@ export default {
                     _this.addressData.formatted_address = null
                     _this.$refs.address.update('');
                     _this.$emit('addressChanged', _this.addressData)
-                    console.log(status);
                 }
             });
         },
