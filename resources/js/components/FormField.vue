@@ -155,8 +155,12 @@ export default {
             });
 
 
-
             var _this = this;
+
+            google.maps.event.addListener(this.map, 'zoom_changed', function (event) {
+                _this.$set(_this.addressData, 'zoom', _this.map.getZoom());
+            });
+
             google.maps.event.addListener(this.map, 'click', function(event) {
                 if (_this.marker) {
                     _this.marker.setMap(null);
