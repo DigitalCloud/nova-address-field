@@ -29,7 +29,7 @@
                         @input="toggleLatLng"
                         class="py-2 pr-2"
                     />
-                    <label @click="toggleLatLng" class="inline-block text-80 pt-2 leading-tight">Show Coordinations</label>
+                    <label @click="toggleLatLng" class="inline-block text-80 pt-2 leading-tight">Show Coordinates</label>
                 </div>
             </div>
             <div v-show="field.withLatLng" class="flex flex-wrap w-full">
@@ -63,7 +63,7 @@
                 </div>
             </div>
 
-            <div class="google-map w-full" :id="mapName" v-show="field.withMap"></div>
+            <div class="google-map w-full" ref="map" v-show="field.withMap"></div>
 
             <p v-if="hasError" class="my-2 text-danger">
                 {{ firstError }}
@@ -86,13 +86,17 @@ export default {
 
     data: function () {
         return {
-            mapName: this.name + "-map",
             mapOptions: {
                 center: new google.maps.LatLng(40.730610, -98.935242),
                 zoom: 5
             },
             address: '',
-            addressData: {latitude: this.field.lat || '', longitude: this.field.lng || '', address: ''},
+            addressData: {
+              latitude: this.field.lat || '',
+              longitude: this.field.lng || '',
+              address: '',
+              zoom: this.field.zoom || 5
+            },
             map: null,
             marker: null,
             geocoder: new google.maps.Geocoder,
@@ -129,13 +133,12 @@ export default {
         },
 
         initMap() {
-            console.log('hsbfjsdbfjdbjdb')
-            const element = document.getElementById(this.mapName);
+            const element = this.$refs.map;
             let center =  new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude)
 
             // setup map options
             const options = {
-                zoom: this.field.zoom || 5,
+                zoom: this.addressData.zoom || this.field.zoom || 5,
                 center: center
             };
             // initialize the map
@@ -152,8 +155,12 @@ export default {
             });
 
 
-
             var _this = this;
+
+            google.maps.event.addListener(this.map, 'zoom_changed', function (event) {
+                _this.$set(_this.addressData, 'zoom', _this.map.getZoom());
+            });
+
             google.maps.event.addListener(this.map, 'click', function(event) {
                 if (_this.marker) {
                     _this.marker.setMap(null);
@@ -205,7 +212,6 @@ export default {
                     _this.addressData.formatted_address = null
                     _this.$refs.address.update('');
                     _this.$emit('addressChanged', _this.addressData)
-                    console.log(status);
                 }
             });
         },
@@ -245,6 +251,7 @@ export default {
     watch: {
         'addressData' : {
             handler: function (newAddressData) {
+                newAddressData.zoom = this.map.getZoom()
                 this.value = JSON.stringify(newAddressData)
                 this.mapOptions.center = new google.maps.LatLng(newAddressData.latitude, newAddressData.longitude)
             },
