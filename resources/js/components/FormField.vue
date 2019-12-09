@@ -129,7 +129,6 @@ export default {
         },
 
         initMap() {
-            console.log('hsbfjsdbfjdbjdb')
             const element = document.getElementById(this.mapName);
             let center =  new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude)
 
