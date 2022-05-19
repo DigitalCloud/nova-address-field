@@ -182,6 +182,23 @@ export default {
 
             return res.long_name;
         },
+        getFirstOccurenceOfComponent: function (results, component) {
+          const address_components = results.map(e => e.address_components);
+
+          let foundComponent = null;
+          
+          for (let i = 0; i < address_components.length; i++) {
+            if (foundComponent) {
+              return foundComponent.long_name;
+            }
+
+            foundComponent = address_components[i].find(function (comp) {
+              return comp.types.includes(component)
+            })
+          }
+
+          return null;
+        },
         getAddressData: function (addressData, placeResultData, id) {
             this.forgetRelatedWatchers()
             this.addressData.latitude = addressData.latitude;
@@ -319,7 +336,7 @@ export default {
                         _this.addressData.countryCode = _this.getAddressComponent(results[0].address_components, 'country', true);
                         _this.addressData.country = _this.getAddressComponent(results[0].address_components, 'country');
                         _this.addressData.administrative_area_level_1 = _this.getAddressComponent(results[0].address_components, 'administrative_area_level_1');
-                        _this.addressData.locality = _this.getAddressComponent(results[0].address_components, 'locality');
+                        _this.addressData.locality = _this.getFirstOccurenceOfComponent(results, 'locality');
                         _this.addressData.postal_code = _this.getAddressComponent(results[0].address_components, 'postal_code');
                         _this.forgetRelatedWatchers()
                         _this.hasUnfilledChanges = true;
