@@ -208,7 +208,7 @@ export default {
             this.addressData.countryCode = this.getAddressComponent(placeResultData.address_components, 'country', true);
             this.addressData.country = addressData.country;
             this.addressData.administrative_area_level_1 = addressData.administrative_area_level_1;
-            this.addressData.locality = addressData.locality;
+            this.addressData.locality = addressData.locality || addressData.administrative_area_level_1;
             this.addressData.postal_code = addressData.postal_code;
 
             this.hasUnfilledChanges = true;
@@ -336,7 +336,7 @@ export default {
                         _this.addressData.countryCode = _this.getAddressComponent(results[0].address_components, 'country', true);
                         _this.addressData.country = _this.getAddressComponent(results[0].address_components, 'country');
                         _this.addressData.administrative_area_level_1 = _this.getAddressComponent(results[0].address_components, 'administrative_area_level_1');
-                        _this.addressData.locality = _this.getFirstOccurenceOfComponent(results, 'locality');
+                        _this.addressData.locality = _this.getFirstOccurenceOfComponent(results, 'locality') || _this.addressData.administrative_area_level_1;
                         _this.addressData.postal_code = _this.getAddressComponent(results[0].address_components, 'postal_code');
                         _this.forgetRelatedWatchers()
                         _this.hasUnfilledChanges = true;
