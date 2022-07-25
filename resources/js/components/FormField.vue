@@ -148,6 +148,7 @@ export default {
         if (this.field.withMap) {
             this.initMap()
         }
+
         if (this.field.do_not_store){
             this.$parent.$children.forEach(component => {
                 if (component.field && [this.field.latitude_field, this.field.longitude_field, this.field.address_field].includes(component.field.attribute)){
@@ -438,14 +439,14 @@ export default {
                     this.updateGeoLocationFields(newAddressData);
                 }
 
-                const baseTimeZoneUrl = 'https://maps.googleapis.com/maps/api/timezone/json?';
-                const timezoneParams = new URLSearchParams({
-                    location: `${newAddressData.latitude},${newAddressData.longitude}`,
-                    timestamp: Date.now() / 1000,
-                    key: Nova.config.googleTimezoneApiKey
-                });
-                const response = await axios.get(baseTimeZoneUrl + timezoneParams.toString());
-                if (!this.addressIsInitializing){
+                if (this.field.timezone && !this.addressIsInitializing) {
+                    const baseTimeZoneUrl = 'https://maps.googleapis.com/maps/api/timezone/json?';
+                    const timezoneParams = new URLSearchParams({
+                        location: `${newAddressData.latitude},${newAddressData.longitude}`,
+                        timestamp: Date.now() / 1000,
+                        key: Nova.config.googleTimezoneApiKey
+                    });
+                    const response = await axios.get(baseTimeZoneUrl + timezoneParams.toString());
                     this.addressData.timeZoneName = response.data.timeZoneId;
                     this.updateTimeZoneField();
                 }
