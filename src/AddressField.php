@@ -2,6 +2,7 @@
 
 namespace DigitalCloud\AddressField;
 
+use App\Models\Timezone;
 use Laravel\Nova\Fields\Field;
 
 class AddressField extends Field
@@ -13,38 +14,41 @@ class AddressField extends Field
      */
     public $component = 'address-field';
 
-    public function withMap(){
+    public function withMap()
+    {
         return $this->withMeta([
-            'withMap' => true
+            'withMap' => true,
         ]);
     }
 
-    public function withLatLng(){
+    public function withLatLng()
+    {
         return $this->withMeta([
-            'withLatLng' => true
+            'withLatLng' => true,
         ]);
     }
-    
-    public function hideToggles(){
+
+    public function hideToggles()
+    {
         return $this->withMeta([
-            'hideToggles' => true
+            'hideToggles' => true,
         ]);
     }
-    
+
     public function countryCode($field)
     {
         return $this->withMeta([
-            'countryCode' => $field
+            'countryCode' => $field,
         ]);
     }
-    
+
     public function country($field)
     {
         return $this->withMeta([
-            'country' => $field
+            'country' => $field,
         ]);
     }
-    
+
     /**
      * City
      * @param $field
@@ -53,74 +57,87 @@ class AddressField extends Field
     public function locality($field)
     {
         return $this->withMeta([
-            'locality' => $field
+            'locality' => $field,
         ]);
     }
-    
+
     public function administrativeArea($field)
     {
         return $this->withMeta([
-            'administrative_area_level_1' => $field
+            'administrative_area_level_1' => $field,
         ]);
     }
-    
+
     public function postalCode($field)
     {
         return $this->withMeta([
-            'postal_code' => $field
+            'postal_code' => $field,
         ]);
     }
-    
-    public function address($field, $inArrayKey=null)
+
+    public function address($field, $inArrayKey = null)
     {
         return $this->withMeta([
             'address_field' => $field,
             'address_field_array_key' => $inArrayKey,
         ]);
     }
-    
+
     public function latitude($field)
     {
         return $this->withMeta([
-            'latitude_field' => $field
+            'latitude_field' => $field,
         ]);
     }
-    
+
     public function longitude($field)
     {
         return $this->withMeta([
-            'longitude_field' => $field
+            'longitude_field' => $field,
         ]);
     }
 
-    public function countries($list){
+    public function countries($list)
+    {
         return $this->withMeta([
-            'countries' => $list
+            'countries' => $list,
         ]);
     }
-    
 
-    public function initLocation($latitude, $longitude){
+    public function initLocation($latitude, $longitude)
+    {
         return $this->withMeta([
             'lat' => $latitude,
             'lng' => $longitude,
         ]);
     }
-    
-    public function doNotStore(){
-        $this->fillUsing(function(){});
+
+    public function doNotStore()
+    {
+        $this->fillUsing(function () {
+        });
         $this->withMeta(['do_not_store' => true]);
+
         return $this;
     }
-    
-    public function manualFill($label){
+
+    public function manualFill($label)
+    {
         return $this->withMeta(['manual_fill' => $label]);
     }
 
     public function zoom($zoom)
     {
         return $this->withMeta([
-            'zoom' => $zoom
+            'zoom' => $zoom,
+        ]);
+    }
+
+    public function timezone($field)
+    {
+        return $this->withMeta([
+            'timezone' => $field,
+            'all_time_zones' => Timezone::pluck('name', 'id'),
         ]);
     }
 }
