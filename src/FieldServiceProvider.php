@@ -27,7 +27,7 @@ class FieldServiceProvider extends ServiceProvider
             Nova::script('address-field', __DIR__.'/../dist/js/field.js');
             Nova::style('address-field', __DIR__.'/../dist/css/field.css');
             Nova::provideToScript([
-                'googleTimezoneApiKey' => config('services.googleMaps.timezone_key'),
+                'googleTimezoneApiKey' => $key,
             ]);
         });
     }
