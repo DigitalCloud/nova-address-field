@@ -2,7 +2,6 @@
 
 namespace DigitalCloud\AddressField;
 
-use App\Models\Timezone;
 use Laravel\Nova\Fields\Field;
 
 class AddressField extends Field
@@ -133,11 +132,11 @@ class AddressField extends Field
         ]);
     }
 
-    public function timezone($field)
+    public function timezone(string $field, array $allTimeZones)
     {
         return $this->withMeta([
             'timezone' => $field,
-            'all_time_zones' => Timezone::pluck('name', 'id'),
+            'all_time_zones' => $allTimeZones,
         ]);
     }
 }
