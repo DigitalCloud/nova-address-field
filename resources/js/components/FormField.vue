@@ -126,12 +126,12 @@ export default {
             showMap: this.field.withMap || false,
             showLngLat: this.field.withLatLng || false,
             hideToggles: this.field.hideToggles || false,
-
             countryCode: this.field.countryCode || false,
             country: this.field.country || false,
             administrative_area_level_1: this.field.administrative_area_level_1 || false,
             locality: this.field.locality || false,
             postal_code: this.field.postal_code || false,
+            timezone: this.field.timezone || false,
             address_field: this.field.address_field || false,
             latitude_field: this.field.latitude_field || false,
             longitude_field: this.field.longitude_field || false,
@@ -145,11 +145,11 @@ export default {
     },
 
     mounted: function () {
-        if(this.field.withMap) {
+        if (this.field.withMap) {
             this.initMap()
         }
-        if (this.field.do_not_store){
 
+        if (this.field.do_not_store){
             this.$parent.$children.forEach(component => {
                 if (component.field && [this.field.latitude_field, this.field.longitude_field, this.field.address_field].includes(component.field.attribute)){
                     const comp = component;
@@ -183,21 +183,21 @@ export default {
             return res.long_name;
         },
         getFirstOccurenceOfComponent: function (results, component) {
-          const address_components = results.map(e => e.address_components);
+            const address_components = results.map(e => e.address_components);
 
-          let foundComponent = null;
-          
-          for (let i = 0; i < address_components.length; i++) {
-            if (foundComponent) {
-              return foundComponent.long_name;
+            let foundComponent = null;
+
+            for (let i = 0; i < address_components.length; i++) {
+                if (foundComponent) {
+                    return foundComponent.long_name;
+                }
+
+                foundComponent = address_components[i].find(function (comp) {
+                    return comp.types.includes(component)
+                })
             }
 
-            foundComponent = address_components[i].find(function (comp) {
-              return comp.types.includes(component)
-            })
-          }
-
-          return null;
+            return null;
         },
         getAddressData: function (addressData, placeResultData, id) {
             this.forgetRelatedWatchers()
@@ -287,8 +287,6 @@ export default {
                 position: center,
                 map: this.map
             });
-
-
 
             var _this = this;
             google.maps.event.addListener(this.map, 'click', function(event) {
@@ -385,11 +383,21 @@ export default {
         fillFields(){
             this.updateFields(this.addressData)
         },
-        updateFields(addressData){
 
+        updateTimeZoneField() {
+            this.$nextTick(() => {
+                for(const [id, name] of Object.entries(this.field.all_time_zones)) {
+                    if (this.addressData.timeZoneName === name) {
+                        Nova.$emit(this.field.timezone + '-value', id);
+                        break;
+                    }
+                }
+            });
+        },
+
+        updateFields(addressData){
             this.hasUnfilledChanges = false;
             this.$nextTick(() => {
-
                 Nova.$emit(this.field.countryCode + '-value', addressData.countryCode);
                 Nova.$emit(this.field.country + '-value', addressData.country);
                 Nova.$emit(this.field.locality + '-value', addressData.locality);
@@ -402,16 +410,13 @@ export default {
 
                 Nova.$emit(this.field.address_field + '-value', name);
                 Nova.$emit(this.field.postal_code + '-value', addressData.postal_code);
-
-            })
+            });
         },
         updateGeoLocationFields(addressData) {
             this.$nextTick(() => {
-
                 Nova.$emit(this.field.latitude_field + '-value', addressData.latitude);
                 Nova.$emit(this.field.longitude_field + '-value', addressData.longitude);
-
-            })
+            });
         }
     },
 
@@ -423,28 +428,41 @@ export default {
 
     watch: {
         'addressData' : {
-            handler: function (newAddressData) {
+            handler: async function (newAddressData) {
                 this.value = JSON.stringify(newAddressData)
                 this.mapOptions.center = new google.maps.LatLng(newAddressData.latitude, newAddressData.longitude)
+
                 if (!this.addressIsInitializing && (!this.manualFill || this.relatedAreEmpty())){
                     this.updateFields(newAddressData)
                 }
                 if (!this.addressIsInitializing){
                     this.updateGeoLocationFields(newAddressData);
                 }
+
+                if (this.field.timezone && !this.addressIsInitializing) {
+                    const baseTimeZoneUrl = 'https://maps.googleapis.com/maps/api/timezone/json?';
+                    const timezoneParams = new URLSearchParams({
+                        location: `${newAddressData.latitude},${newAddressData.longitude}`,
+                        timestamp: Date.now() / 1000,
+                        key: Nova.config.googleTimezoneApiKey
+                    });
+                    const response = await axios.get(baseTimeZoneUrl + timezoneParams.toString());
+                    this.addressData.timeZoneName = response.data.timeZoneId;
+                    this.updateTimeZoneField();
+                }
             },
             deep: true
-        }
+        },
     }
 }
 </script>
 
 
 <style scoped>
-    .google-map {
-        height: 300px;
-        margin: 0 auto;
-        background: gray;
-        border:solid 1px #ccc;
-    }
+.google-map {
+    height: 300px;
+    margin: 0 auto;
+    background: gray;
+    border:solid 1px #ccc;
+}
 </style>
