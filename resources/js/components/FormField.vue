@@ -386,12 +386,7 @@ export default {
 
         updateTimeZoneField() {
             this.$nextTick(() => {
-                for(const [id, name] of Object.entries(this.field.all_time_zones)) {
-                    if (this.addressData.timeZoneName === name) {
-                        Nova.$emit(this.field.timezone + '-value', id);
-                        break;
-                    }
-                }
+                Nova.$emit(this.field.timezone + '-value', this.addressData.timeZoneName);
             });
         },
 

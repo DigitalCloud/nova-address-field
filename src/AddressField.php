@@ -132,11 +132,10 @@ class AddressField extends Field
         ]);
     }
 
-    public function timezone(string $field, array $allTimeZones)
+    public function timezone(string $field)
     {
         return $this->withMeta([
             'timezone' => $field,
-            'all_time_zones' => $allTimeZones,
         ]);
     }
 }
