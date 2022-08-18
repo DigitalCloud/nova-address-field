@@ -2,10 +2,9 @@
 
 namespace DigitalCloud\AddressField;
 
-use Illuminate\Support\Facades\Config;
-use Laravel\Nova\Nova;
-use Laravel\Nova\Events\ServingNova;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Nova\Events\ServingNova;
+use Laravel\Nova\Nova;
 
 class FieldServiceProvider extends ServiceProvider
 {
@@ -16,7 +15,7 @@ class FieldServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-//		$this->publishes([
+        //		$this->publishes([
 //            $this->configPath() => config_path('nova-address-field.php'),
 //        ], 'nova-address-field-config');
 
@@ -24,11 +23,8 @@ class FieldServiceProvider extends ServiceProvider
 //            $key = Config::get('nova-address-field.api_key');
             $key = config('services.googleMaps.key');
             Nova::script('google-maps', "https://maps.googleapis.com/maps/api/js?key={$key}&libraries=places");
-            Nova::script('address-field', __DIR__.'/../dist/js/field.js');
-            Nova::style('address-field', __DIR__.'/../dist/css/field.css');
-            Nova::provideToScript([
-                'googleTimezoneApiKey' => $key,
-            ]);
+            Nova::script('address-field', __DIR__ . '/../dist/js/field.js');
+            Nova::style('address-field', __DIR__ . '/../dist/css/field.css');
         });
     }
 
@@ -42,11 +38,11 @@ class FieldServiceProvider extends ServiceProvider
         //
     }
 
-	/**
+    /**
      * @return string
      */
     protected function configPath()
     {
-        return __DIR__.'/../config/nova-address-field.php';
+        return __DIR__ . '/../config/nova-address-field.php';
     }
 }

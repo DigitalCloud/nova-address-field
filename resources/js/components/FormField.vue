@@ -435,14 +435,9 @@ export default {
                 }
 
                 if (this.field.timezone && !this.addressIsInitializing) {
-                    const baseTimeZoneUrl = 'https://maps.googleapis.com/maps/api/timezone/json?';
-                    const timezoneParams = new URLSearchParams({
-                        location: `${newAddressData.latitude},${newAddressData.longitude}`,
-                        timestamp: Date.now() / 1000,
-                        key: Nova.config.googleTimezoneApiKey
-                    });
-                    const response = await axios.get(baseTimeZoneUrl + timezoneParams.toString());
-                    this.addressData.timeZoneName = response.data.timeZoneId;
+                    const response = await Nova.request().get(`/api/v1/nova/timezone/${newAddressData.latitude}/${newAddressData.longitude}`);
+
+                    this.addressData.timeZoneName = response.data.timezone;
                     this.updateTimeZoneField();
                 }
             },
