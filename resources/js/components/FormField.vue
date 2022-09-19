@@ -151,7 +151,7 @@ export default {
 
         if (this.field.do_not_store){
             this.$parent.$children.forEach(component => {
-                if (component.field && [this.field.latitude_field, this.field.longitude_field, this.field.address_field].includes(component.field.attribute)){
+                if (component.field && [this.field.latitude_field, this.field.longitude_field, this.field.address_field, this.field.administrative_area_level_1].includes(component.field.attribute)){
                     const comp = component;
                     const watcher = component.$watch('value', value => {
                         this.relatedValues[comp.field.attribute] = value;
@@ -173,14 +173,26 @@ export default {
             const res = address_components.find(function (comp) {
                 return comp.types.includes(component)
             })
+            /*console.log('we are in getAddressComponent');
+            console.log('address_components', address_components);
+            console.log('component', component);
+            console.log('res', res);*/
             if (!res){
                 return;
             }
             if (short){
+                // short name
+                if(typeof(res.address_components) == 'object' && res.address_components[0].hasOwnProperty('short_name')) {
+                    return res.address_components[0].short_name;
+                }
                 return res.short_name;
+            } else {
+                // long name
+                if(typeof(res.address_components) == 'object' && res.address_components[0].hasOwnProperty('long_name')) {
+                    return res.address_components[0].long_name;
+                }
+                return res.long_name;
             }
-
-            return res.long_name;
         },
         getFirstOccurenceOfComponent: function (results, component) {
             const address_components = results.map(e => e.address_components);
@@ -207,6 +219,7 @@ export default {
 
             this.addressData.countryCode = this.getAddressComponent(placeResultData.address_components, 'country', true);
             this.addressData.country = addressData.country;
+            console.log('about to set administrative_area_level_1', addressData.administrative_area_level_1);
             this.addressData.administrative_area_level_1 = addressData.administrative_area_level_1;
             this.addressData.locality = addressData.locality || addressData.administrative_area_level_1;
             this.addressData.postal_code = addressData.postal_code;
@@ -331,9 +344,12 @@ export default {
                         _this.addressData.longitude = latLng.lng()
                         _this.addressData.formatted_address = results[0].formatted_address
 
-                        _this.addressData.countryCode = _this.getAddressComponent(results[0].address_components, 'country', true);
+                        console.log('about to call getAddressComponent. All resulrs are: ', results);
+                        _this.addressData.countryCode = _this.getAddressComponent(results, 'country', true);
                         _this.addressData.country = _this.getAddressComponent(results[0].address_components, 'country');
-                        _this.addressData.administrative_area_level_1 = _this.getAddressComponent(results[0].address_components, 'administrative_area_level_1');
+                        var region = _this.getAddressComponent(results, 'administrative_area_level_1');
+                        console.log('REGION FOUND', region);
+                        _this.addressData.administrative_area_level_1 = region;
                         _this.addressData.locality = _this.getFirstOccurenceOfComponent(results, 'locality') || _this.addressData.administrative_area_level_1;
                         _this.addressData.postal_code = _this.getAddressComponent(results[0].address_components, 'postal_code');
                         _this.forgetRelatedWatchers()
@@ -396,6 +412,8 @@ export default {
                 Nova.$emit(this.field.countryCode + '-value', addressData.countryCode);
                 Nova.$emit(this.field.country + '-value', addressData.country);
                 Nova.$emit(this.field.locality + '-value', addressData.locality);
+                console.log('state:' , addressData.administrative_area_level_1);
+                console.log('relatedValues:' , this.relatedValues);
                 Nova.$emit(this.field.administrative_area_level_1 + '-value', addressData.administrative_area_level_1);
                 var name = addressData.formatted_address;
                 if (this.field.address_field_array_key){
