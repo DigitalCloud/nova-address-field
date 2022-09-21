@@ -173,10 +173,7 @@ export default {
             const res = address_components.find(function (comp) {
                 return comp.types.includes(component)
             })
-            /*console.log('we are in getAddressComponent');
-            console.log('address_components', address_components);
-            console.log('component', component);
-            console.log('res', res);*/
+
             if (!res){
                 return;
             }
@@ -219,7 +216,6 @@ export default {
 
             this.addressData.countryCode = this.getAddressComponent(placeResultData.address_components, 'country', true);
             this.addressData.country = addressData.country;
-            console.log('about to set administrative_area_level_1', addressData.administrative_area_level_1);
             this.addressData.administrative_area_level_1 = addressData.administrative_area_level_1;
             this.addressData.locality = addressData.locality || addressData.administrative_area_level_1;
             this.addressData.postal_code = addressData.postal_code;
@@ -344,7 +340,6 @@ export default {
                         _this.addressData.longitude = latLng.lng()
                         _this.addressData.formatted_address = results[0].formatted_address
 
-                        console.log('about to call getAddressComponent. All resulrs are: ', results);
                         _this.addressData.countryCode = _this.getAddressComponent(results, 'country', true);
                         _this.addressData.country = _this.getAddressComponent(results[0].address_components, 'country');
                         var region = _this.getAddressComponent(results, 'administrative_area_level_1');
@@ -412,9 +407,13 @@ export default {
                 Nova.$emit(this.field.countryCode + '-value', addressData.countryCode);
                 Nova.$emit(this.field.country + '-value', addressData.country);
                 Nova.$emit(this.field.locality + '-value', addressData.locality);
-                console.log('state:' , addressData.administrative_area_level_1);
-                console.log('relatedValues:' , this.relatedValues);
+                console.log('about to updateFields administrative_area_level_1', addressData.administrative_area_level_1);
                 Nova.$emit(this.field.administrative_area_level_1 + '-value', addressData.administrative_area_level_1);
+                var region = this.field.administrative_area_level_1;
+                setTimeout(function() {
+                    $('#'+region).val(addressData.administrative_area_level_1);
+                }, 300)
+                Nova.$emit(region + '-value', addressData.administrative_area_level_1);
                 var name = addressData.formatted_address;
                 if (this.field.address_field_array_key){
                     name = {};
