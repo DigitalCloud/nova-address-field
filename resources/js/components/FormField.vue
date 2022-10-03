@@ -106,7 +106,6 @@ export default {
     mixins: [FormField, HandlesValidationErrors],
 
     props: ['resourceName', 'resourceId', 'field'],
-
     data: function () {
         return {
             mapName: this.name + "-map",
@@ -129,6 +128,7 @@ export default {
             countryCode: this.field.countryCode || false,
             country: this.field.country || false,
             administrative_area_level_1: this.field.administrative_area_level_1 || false,
+            region_states: this.field.region_states || [],
             locality: this.field.locality || false,
             postal_code: this.field.postal_code || false,
             timezone: this.field.timezone || false,
@@ -407,15 +407,14 @@ export default {
                 Nova.$emit(this.field.countryCode + '-value', addressData.countryCode);
                 Nova.$emit(this.field.country + '-value', addressData.country);
                 Nova.$emit(this.field.locality + '-value', addressData.locality);
-                console.log('about to updateFields administrative_area_level_1', addressData.administrative_area_level_1);
+
                 let region = this.field.administrative_area_level_1;
+                let states = this.region_states;
 
                 setTimeout(function() {
-                  if (['US','AU'].includes(addressData.countryCode)) {
-                    console.log('emitting state change')
+                  if (states.includes(addressData.countryCode)) {
                     Nova.$emit('state-value', addressData.administrative_area_level_1)
                   } else {
-                    console.log('emitting region change')
                     Nova.$emit(region + '-value', addressData.administrative_area_level_1);
                   }
                 }, 500)
