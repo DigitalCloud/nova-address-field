@@ -138,4 +138,11 @@ class AddressField extends Field
             'timezone' => $field,
         ]);
     }
+
+    public function regionStates(array $states)
+    {
+        return $this->withMeta([
+            'region_states' => $states,
+        ]);
+    }
 }
