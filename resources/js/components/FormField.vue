@@ -96,7 +96,7 @@
 </template>
 
 <script>
-import { FormField, HandlesValidationErrors } from 'laravel-nova'
+import {FormField, HandlesValidationErrors} from 'laravel-nova'
 import VueGoogleAutocomplete from 'vue-google-autocomplete'
 
 export default {
@@ -216,8 +216,10 @@ export default {
 
             this.addressData.countryCode = this.getAddressComponent(placeResultData.address_components, 'country', true);
             this.addressData.country = addressData.country;
-            this.addressData.administrative_area_level_1 = addressData.administrative_area_level_1;
-            this.addressData.locality = addressData.locality || addressData.administrative_area_level_1;
+            this.addressData.administrative_area_level_1 = this.getAddressComponent(placeResultData.address_components, 'administrative_area_level_1');
+
+            this.addressData.locality = this.getAddressComponent(placeResultData.address_components, 'postal_town', true)
+                || addressData.locality || addressData.administrative_area_level_1;
             this.addressData.postal_code = addressData.postal_code;
 
             this.hasUnfilledChanges = true;
