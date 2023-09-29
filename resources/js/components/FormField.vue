@@ -209,16 +209,23 @@ export default {
             return null;
         },
         getAddressData: function (addressData, placeResultData, id) {
-            this.forgetRelatedWatchers()
+            let states = this.region_states;
+            let countryCodeShort = this.getAddressComponent(placeResultData.address_components, 'country', true);
+
+            this.forgetRelatedWatchers();
             this.addressData.latitude = addressData.latitude;
             this.addressData.longitude = addressData.longitude;
             this.addressData.formatted_address = placeResultData.formatted_address;
 
             this.addressData.countryCode = this.getAddressComponent(placeResultData.address_components, 'country', true);
             this.addressData.country = addressData.country;
-            this.addressData.administrative_area_level_1 = this.getAddressComponent(placeResultData.address_components, 'administrative_area_level_1');
+            this.addressData.administrative_area_level_1 = !states.includes(countryCodeShort) ?
+                addressData.administrative_area_level_1 :
+                this.getAddressComponent(placeResultData.address_components, 'administrative_area_level_1');
 
-            this.addressData.locality = this.getAddressComponent(placeResultData.address_components, 'postal_town', true)
+            this.addressData.locality = !states.includes(countryCodeShort) ?
+                this.getAddressComponent(placeResultData.address_components, 'administrative_area_level_1') :
+                this.getAddressComponent(placeResultData.address_components, 'postal_town', true)
                 || addressData.locality || addressData.administrative_area_level_1;
             this.addressData.postal_code = addressData.postal_code;
 
