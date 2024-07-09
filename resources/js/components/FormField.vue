@@ -1,7 +1,6 @@
 <template>
-    <default-field :field="field" :errors="errors">
-        <template slot="field">
-
+    <DefaultField :field="field" :errors="errors">
+        <template #field>
             <vue-google-autocomplete
                 ref="address"
                 :id="field.attribute"
@@ -10,26 +9,16 @@
                 :class="errorClasses"
                 :placeholder="field.name"
                 :country="field.countries"
-                v-on:placechanged="getAddressData">
-            </vue-google-autocomplete>
+                @placechanged="getAddressData"
+            />
             <div class="flex w-full pt-2">
                 <div class="flex w-1/2">
-                    <checkbox
-                        :checked="field.withMap"
-                        @input="toggleMap"
-                        class="py-2 pr-2"
-
-                    />
+                    <input type="checkbox" v-model="field.withMap" @change="toggleMap" class="py-2 pr-2" />
                     <label @click="toggleMap" class="inline-block text-80 pt-2 leading-tight">Show Map</label>
                 </div>
-
                 <div class="flex w-1/2">
-                    <checkbox
-                        :checked="field.withLatLng"
-                        @input="toggleLatLng"
-                        class="py-2 pr-2"
-                    />
-                    <label @click="toggleLatLng" class="inline-block text-80 pt-2 leading-tight">Show Coordinations</label>
+                    <input type="checkbox" v-model="field.withLatLng" @change="toggleLatLng" class="py-2 pr-2" />
+                    <label @click="toggleLatLng" class="inline-block text-80 pt-2 leading-tight">Show Coordinates</label>
                 </div>
             </div>
             <div v-show="field.withLatLng" class="flex flex-wrap w-full">
@@ -38,12 +27,14 @@
                         <label class="inline-block text-80 pt-2 leading-tight" for="latitude">Lat</label>
                     </div>
                     <div class="py-3 pr-2 w-4/5">
-                        <input id="latitude" type="text"
-                               class="w-full form-control form-input form-input-bordered"
-                               :class="errorClasses"
-                               placeholder="long"
-                               v-model="addressData.latitude"
-                               v-on:change="refreshAddressData"
+                        <input
+                            id="latitude"
+                            type="text"
+                            class="w-full form-control form-input form-input-bordered"
+                            :class="errorClasses"
+                            placeholder="lat"
+                            v-model="addressData.latitude"
+                            @change="refreshAddressData"
                         />
                     </div>
                 </div>
@@ -52,215 +43,205 @@
                         <label class="inline-block text-80 pt-2 leading-tight" for="longitude">Lng</label>
                     </div>
                     <div class="py-3 w-4/5">
-                        <input id="longitude" type="text"
-                               class="w-full form-control form-input form-input-bordered"
-                               :class="errorClasses"
-                               placeholder="long"
-                               v-model="addressData.longitude"
-                               v-on:change="refreshAddressData"
+                        <input
+                            id="longitude"
+                            type="text"
+                            class="w-full form-control form-input form-input-bordered"
+                            :class="errorClasses"
+                            placeholder="lng"
+                            v-model="addressData.longitude"
+                            @change="refreshAddressData"
                         />
                     </div>
                 </div>
             </div>
 
-            <div class="google-map w-full" :id="mapName" v-show="field.withMap"></div>
+            <div class="google-map w-full" ref="mapElement" v-show="field.withMap"></div>
 
             <p v-if="hasError" class="my-2 text-danger">
                 {{ firstError }}
             </p>
         </template>
-    </default-field>
+    </DefaultField>
 </template>
 
 <script>
-import { FormField, HandlesValidationErrors } from 'laravel-nova'
-import VueGoogleAutocomplete from 'vue-google-autocomplete'
+import { FormField, HandlesValidationErrors } from 'laravel-nova';
+import { ref, onMounted, getCurrentInstance } from 'vue';
+import VueGoogleAutocomplete from 'vue-google-autocomplete';
 
 export default {
-
-    components: { VueGoogleAutocomplete },
-
     mixins: [FormField, HandlesValidationErrors],
+    emits: ['addressChanged'],
+    components: {VueGoogleAutocomplete},
+    props: {
+        resourceName: String,
+        resourceId: String,
+        field: Object,
+    },
 
-    props: ['resourceName', 'resourceId', 'field'],
+    setup(props) {
+        const { emit } = getCurrentInstance();
 
-    data: function () {
-        return {
-            mapName: this.name + "-map",
-            mapOptions: {
-                center: new google.maps.LatLng(40.730610, -98.935242),
-                zoom: 5
-            },
+        let addressData = ref({
+            latitude: props.field.lat || '',
+            longitude: props.field.lng || '',
             address: '',
-            addressData: {latitude: this.field.lat || '', longitude: this.field.lng || '', address: ''},
-            map: null,
-            marker: null,
-            geocoder: new google.maps.Geocoder,
-            showMap: this.field.withMap || false,
-            showLngLat: this.field.withLatLng || false,
-        }
-    },
+            zoom: props.field.zoom || 5,
+        });
 
-    mounted: function () {
-        if(this.field.withMap) {
-            this.initMap()
-        }
-    },
+        const address = ref('');
+        const mapElement = ref(null);
+        const googleMap = ref(null);
+        const geocoder = new google.maps.Geocoder();
+        const showMap = ref(props.field.withMap || false);
+        const showLngLat = ref(props.field.withLatLng || false);
+        let marker;
 
-    methods: {
-        getAddressData: function (addressData, placeResultData, id) {
-            this.addressData.latitude = addressData.latitude;
-            this.addressData.longitude = addressData.longitude;
-            this.addressData.formatted_address = placeResultData.formatted_address;
-            this.refreshMap()
-            this.$emit('addressChanged', this.addressData)
-        },
+        const getAddressData = (event, placeResultData, id) => {
+            addressData.value.latitude = event.latitude;
+            addressData.value.longitude = event.longitude;
+            addressData.value.formatted_address = placeResultData.formatted_address;
+            refreshMap();
+            emit('addressChanged', addressData);
+        };
 
-        refreshAddressData() {
-            this.geocode(new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude))
-            this.refreshMap()
-        },
+        const refreshAddressData = () => {
+            geocode(new google.maps.LatLng(addressData.value.latitude, addressData.value.longitude));
+            refreshMap();
+            fillFieldText();
+        };
 
-        toggleMap() {
-            this.field.withMap = !this.field.withMap
-        },
-        toggleLatLng() {
-            this.field.withLatLng = !this.field.withLatLng
-        },
+        const initMap = () => {
+            if (!showMap.value) return;
 
-        initMap() {
-            console.log('hsbfjsdbfjdbjdb')
-            const element = document.getElementById(this.mapName);
-            let center =  new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude)
-
-            // setup map options
+            const element = mapElement.value;
+            const center = new google.maps.LatLng(addressData.value.latitude, addressData.value.longitude);
             const options = {
-                zoom: this.field.zoom || 5,
-                center: center
+                zoom: addressData.value.zoom || props.field.zoom || 5,
+                center: center,
             };
-            // initialize the map
-            this.map = new google.maps.Map(element, options);
 
-            // get formatted address for the latitude and longitude
-            if(!this.addressData.address) {
-                this.geocode(center)
+            googleMap.value = new google.maps.Map(element, options);
+
+            fillFieldText();
+
+            if (!addressData.value.address) {
+                geocode(center, true);
             }
-            // adding initial marker
-            this.marker = new google.maps.Marker({
+
+            marker = new google.maps.Marker({
                 position: center,
-                map: this.map
+                map: googleMap.value,
             });
 
+            google.maps.event.addListener(googleMap, 'zoom_changed', () => {
+                addressData.value.zoom = googleMap.value.getZoom();
+            });
 
-
-            var _this = this;
-            google.maps.event.addListener(this.map, 'click', function(event) {
-                if (_this.marker) {
-                    _this.marker.setMap(null);
+            google.maps.event.addListener(googleMap.value, 'click', (event) => {
+                if (marker) {
+                    marker.setMap(null);
                 }
-                _this.marker = new google.maps.Marker({
+
+                marker = new google.maps.Marker({
                     position: event.latLng,
-                    map: _this.map
+                    map: googleMap.value
                 });
-                _this.geocode(event.latLng)
+                geocode(event.latLng);
+                fillFieldText();
             });
-        },
+        };
 
-        refreshMap() {
-            if(this.map === null) {
-                return;
-            }
-            let LatLng = new google.maps.LatLng(this.addressData.latitude, this.addressData.longitude)
-            this.map.setCenter(LatLng);
-            if (this.marker) {
-                this.marker.setMap(null)
+        const refreshMap = () => {
+            if (!googleMap.value) return;
+
+            const LatLng = new google.maps.LatLng(addressData.value.latitude, addressData.value.longitude);
+            googleMap.value.setCenter(LatLng);
+
+            if (marker) {
+                marker.setMap(null);
             }
 
-            this.marker = new google.maps.Marker({
+            marker = new google.maps.Marker({
                 position: LatLng,
-                map: this.map
+                map: googleMap.value
             });
-        },
+        };
 
-        resetMarker() {
-            this.marker.setMap(null)
-        },
-
-        geocode(latLng) {
-            let _this = this
-            this.geocoder.geocode({'location': latLng}, function(results, status) {
+        const geocode = (latLng) => {
+            geocoder.geocode({'location': latLng}, (results, status) => {
                 if (status === 'OK') {
                     if (results[0]) {
-                        _this.addressData.latitude = parseFloat(latLng.lat().toFixed(6))
-                        _this.addressData.longitude = parseFloat(latLng.lng().toFixed(6))
-                        _this.addressData.formatted_address = results[0].formatted_address
-                        _this.$refs.address.update(results[0].formatted_address);
-                        _this.$emit('addressChanged', _this.addressData)
-                    } else {
-                        //window.alert('No results found');
+                        addressData.value.latitude = parseFloat(latLng.lat().toFixed(6));
+                        addressData.value.longitude = parseFloat(latLng.lng().toFixed(6));
+                        addressData.value.formatted_address = results[0].formatted_address;
+                        emit('addressChanged', addressData);
                     }
-                } else {
-                    _this.addressData.latitude = null
-                    _this.addressData.longitude = null
-                    _this.addressData.formatted_address = null
-                    _this.$refs.address.update('');
-                    _this.$emit('addressChanged', _this.addressData)
-                    console.log(status);
                 }
             });
-        },
+        };
 
-        /*
-         * Set the initial, internal value for the field.
-         */
-        setInitialValue() {
-            this.value = this.field.value || ''
-            if(this.value) {
-                this.addressData = JSON.parse(this.value)
-                this.$refs.address.update(this.addressData.formatted_address);
+        const setInitialValue = () => {
+            const value = props.field.value || '';
+
+            if (value) {
+                addressData.value = JSON.parse(value);
             }
-        },
+        };
 
-        /**
-         * Fill the given FormData object with the field's internal value.
-         */
-        fill(formData) {
-            formData.append(this.field.attribute, this.value || '')
-        },
+        const fill = (formData) => {
+            formData.append(props.field.attribute, JSON.stringify(addressData.value));
+        };
 
-        /**
-         * Update the field's internal value.
-         */
-        handleChange(value) {
-            this.value = value
-        },
-    },
+        const fillFieldText = () => {
+            if (addressData.value.formatted_address) {
+                address.value.autocompleteText = addressData.value.formatted_address;
+            }
+        };
 
-    computed: {
-        computed() {
+        const toggleMap = () => {
+            props.field.withMap = !props.field.withMap;
+        };
 
-        }
-    },
+        const toggleLatLng = () => {
+            props.field.withLatLng = !props.field.withLatLng;
+        };
 
-    watch: {
-        'addressData' : {
-            handler: function (newAddressData) {
-                this.value = JSON.stringify(newAddressData)
-                this.mapOptions.center = new google.maps.LatLng(newAddressData.latitude, newAddressData.longitude)
-            },
-            deep: true
-        }
+        onMounted(() => {
+            if (showMap.value) {
+                initMap();
+            }
+        });
+
+        return {
+            address,
+            addressData,
+            mapElement,
+            googleMap,
+            marker,
+            geocoder,
+            showMap,
+            showLngLat,
+            toggleMap,
+            toggleLatLng,
+            getAddressData,
+            refreshAddressData,
+            refreshMap,
+            setInitialValue,
+            fill,
+            fillFieldText,
+        };
     }
-}
+};
 </script>
 
-
 <style scoped>
-    .google-map {
-        width: 720px;
-        height: 300px;
-        margin: 0 auto;
-        background: gray;
-        border:solid 1px #ccc;
-    }
+.google-map {
+    width: 720px;
+    height: 300px;
+    margin: 0 auto;
+    background: gray;
+    border: solid 1px #ccc;
+}
 </style>
